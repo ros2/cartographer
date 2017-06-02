@@ -23,15 +23,16 @@
     and mapping (SLAM) in 2D and 3D across multiple platforms and sensor
     configurations.
   </description>
-  <maintainer email="google-cartographer@googlegroups.com">
-    The Cartographer Authors
+  <maintainer email="clalancette@openrobotics.org">
+    Chris Lalancette
   </maintainer>
   <license>Apache 2.0</license>
 
   <url>https://github.com/googlecartographer/cartographer</url>
 
   <build_depend>g++-static</build_depend>
-  <build_depend>google-mock</build_depend>
+  <!-- TODO(clalancette): disabling dependency until we reenable the tests -->
+  <!-- <build_depend>google-mock</build_depend> -->
   <build_depend>python-sphinx</build_depend>
 
   <depend>boost</depend>
