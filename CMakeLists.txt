@@ -24,7 +24,7 @@ set(CARTOGRAPHER_SOVERSION ${CARTOGRAPHER_MAJOR_VERSION}.${CARTOGRAPHER_MINOR_VE
 
 include("${PROJECT_SOURCE_DIR}/cmake/functions.cmake")
 google_initialize_cartographer_project()
-google_enable_testing()
+#google_enable_testing()
 
 find_package(Boost REQUIRED COMPONENTS iostreams)
 find_package(Ceres REQUIRED COMPONENTS SparseLinearAlgebraLibrary)
@@ -94,14 +94,14 @@ google_binary(cartographer_compute_relations_metrics
     cartographer/ground_truth/compute_relations_metrics_main.cc
 )
 
-foreach(ABS_FIL ${ALL_TESTS})
-  file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
-  get_filename_component(DIR ${REL_FIL} DIRECTORY)
-  get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
-  # Replace slashes as required for CMP0037.
-  string(REPLACE "/" "." TEST_TARGET_NAME "${DIR}/${FIL_WE}")
-  google_test("${TEST_TARGET_NAME}" ${ABS_FIL})
-endforeach()
+#foreach(ABS_FIL ${ALL_TESTS})
+#  file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
+#  get_filename_component(DIR ${REL_FIL} DIRECTORY)
+#  get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
+#  # Replace slashes as required for CMP0037.
+#  string(REPLACE "/" "." TEST_TARGET_NAME "${DIR}/${FIL_WE}")
+#  google_test("${TEST_TARGET_NAME}" ${ABS_FIL})
+#endforeach()
 
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC
   "${EIGEN3_INCLUDE_DIR}")
@@ -144,9 +144,9 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 )
 
 # TODO(damonkohler): Create a testing library.
-target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
-  "${GMOCK_INCLUDE_DIRS}")
-target_link_libraries(${PROJECT_NAME} PUBLIC ${GMOCK_LIBRARY})
+#target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE
+#  "${GMOCK_INCLUDE_DIRS}")
+#target_link_libraries(${PROJECT_NAME} PUBLIC ${GMOCK_LIBRARY})
 
 set(TARGET_COMPILE_FLAGS "${TARGET_COMPILE_FLAGS} ${GOOG_CXX_FLAGS}")
 set_target_properties(${PROJECT_NAME} PROPERTIES
