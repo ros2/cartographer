@@ -26,6 +26,7 @@
   <maintainer email="clalancette@openrobotics.org">
     Chris Lalancette
   </maintainer>
+  <author>The Cartographer Authors</author>
   <license>Apache 2.0</license>
 
   <url>https://github.com/googlecartographer/cartographer</url>
