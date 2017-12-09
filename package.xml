@@ -35,6 +35,8 @@
   <!-- TODO(clalancette): disabling dependency until we reenable the tests -->
   <!-- <build_depend>google-mock</build_depend> -->
   <build_depend>python-sphinx</build_depend>
+  
+  <buildtool_depend>cmake</buildtool_depend>
 
   <depend>boost</depend>
   <depend>eigen</depend>
