@@ -23,9 +23,7 @@
     and mapping (SLAM) in 2D and 3D across multiple platforms and sensor
     configurations.
   </description>
-  <maintainer email="cartographer-owners@googlegroups.com">
-    The Cartographer Authors
-  </maintainer>
+  <maintainer email="pyo@robotis.com">Pyo</maintainer>
   <license>Apache 2.0</license>
 
   <url>https://github.com/googlecartographer/cartographer</url>
@@ -33,6 +31,8 @@
   <author email="google-cartographer@googlegroups.com">
     The Cartographer Authors
   </author>
+
+  <author email="thlim@robotis.com">Darby Lim</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
