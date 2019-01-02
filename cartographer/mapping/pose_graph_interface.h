@@ -18,6 +18,7 @@
 #define CARTOGRAPHER_MAPPING_POSE_GRAPH_INTERFACE_H_
 
 #include <vector>
+#include <array>
 
 #include "cartographer/common/optional.h"
 #include "cartographer/mapping/id.h"
