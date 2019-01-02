@@ -19,7 +19,7 @@
 
 #include "cartographer/common/lua_parameter_dictionary.h"
 #include "cartographer/io/points_processor.h"
-#include "cartographer/mapping_3d/hybrid_grid.h"
+#include "cartographer/mapping/3d/hybrid_grid.h"
 
 namespace cartographer {
 namespace io {
@@ -78,7 +78,7 @@ class OutlierRemovingPointsProcessor : public PointsProcessor {
   const double voxel_size_;
   PointsProcessor* const next_;
   State state_;
-  mapping_3d::HybridGridBase<VoxelData> voxels_;
+  mapping::HybridGridBase<VoxelData> voxels_;
 };
 
 }  // namespace io

@@ -25,8 +25,8 @@
 #include "cartographer/common/math.h"
 #include "cartographer/io/draw_trajectories.h"
 #include "cartographer/io/image.h"
+#include "cartographer/mapping/3d/hybrid_grid.h"
 #include "cartographer/mapping/detect_floors.h"
-#include "cartographer/mapping_3d/hybrid_grid.h"
 #include "cartographer/transform/transform.h"
 
 namespace cartographer {
@@ -111,7 +111,7 @@ XRayPointsProcessor::XRayPointsProcessor(
       transform_(transform) {
   for (size_t i = 0; i < (floors_.empty() ? 1 : floors.size()); ++i) {
     aggregations_.emplace_back(
-        Aggregation{mapping_3d::HybridGridBase<bool>(voxel_size), {}});
+        Aggregation{mapping::HybridGridBase<bool>(voxel_size), {}});
   }
 }
 
@@ -149,7 +149,8 @@ void XRayPointsProcessor::WriteVoxels(const Aggregation& aggregation,
   }
 
   // Returns the (x, y) pixel of the given 'index'.
-  const auto voxel_index_to_pixel = [this](const Eigen::Array3i& index) {
+  const auto voxel_index_to_pixel =
+      [this](const Eigen::Array3i& index) -> Eigen::Array2i {
     // We flip the y axis, since matrices rows are counted from the top.
     return Eigen::Array2i(bounding_box_.max()[1] - index[1],
                           bounding_box_.max()[2] - index[2]);
@@ -160,7 +161,7 @@ void XRayPointsProcessor::WriteVoxels(const Aggregation& aggregation,
   const int xsize = bounding_box_.sizes()[1] + 1;
   const int ysize = bounding_box_.sizes()[2] + 1;
   PixelDataMatrix pixel_data_matrix = PixelDataMatrix(ysize, xsize);
-  for (mapping_3d::HybridGridBase<bool>::Iterator it(aggregation.voxels);
+  for (mapping::HybridGridBase<bool>::Iterator it(aggregation.voxels);
        !it.Done(); it.Next()) {
     const Eigen::Array3i cell_index = it.GetCellIndex();
     const Eigen::Array2i pixel = voxel_index_to_pixel(cell_index);

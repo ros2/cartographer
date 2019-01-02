@@ -86,11 +86,17 @@ double acceleration_weight
 double rotation_weight
   Scaling parameter for the IMU rotation term.
 
-double consecutive_node_translation_weight
-  Scaling parameter for translation between consecutive nodes.
+double local_slam_pose_translation_weight
+  Scaling parameter for translation between consecutive nodes based on the local SLAM pose.
 
-double consecutive_node_rotation_weight
-  Scaling parameter for rotation between consecutive nodes.
+double local_slam_pose_rotation_weight
+  Scaling parameter for rotation between consecutive nodes based on the local SLAM pose.
+
+double odometry_translation_weight
+  Scaling parameter for translation between consecutive nodes based on the odometry.
+
+double odometry_rotation_weight
+  Scaling parameter for rotation between consecutive nodes based on the odometry.
 
 double fixed_frame_pose_translation_weight
   Scaling parameter for the FixedFramePose translation.
@@ -119,6 +125,19 @@ int32 num_background_threads
 
 cartographer.mapping.proto.PoseGraphOptions pose_graph_options
   Not yet documented.
+
+
+cartographer.mapping.proto.MotionFilterOptions
+==============================================
+
+double max_time_seconds
+  Threshold above which range data is inserted based on time.
+
+double max_distance_meters
+  Threshold above which range data is inserted based on linear motion.
+
+double max_angle_radians
+  Threshold above which range data is inserted based on rotational motion.
 
 
 cartographer.mapping.proto.PoseGraphOptions
@@ -215,7 +234,7 @@ cartographer.mapping_2d.scan_matching.proto.RealTimeCorrelativeScanMatcherOption
 cartographer.mapping_2d.scan_matching.proto.CeresScanMatcherOptions ceres_scan_matcher_options
   Not yet documented.
 
-cartographer.mapping_3d.proto.MotionFilterOptions motion_filter_options
+cartographer.mapping.proto.MotionFilterOptions motion_filter_options
   Not yet documented.
 
 double imu_gravity_time_constant
@@ -347,7 +366,7 @@ cartographer.mapping_2d.scan_matching.proto.RealTimeCorrelativeScanMatcherOption
 cartographer.mapping_3d.scan_matching.proto.CeresScanMatcherOptions ceres_scan_matcher_options
   Not yet documented.
 
-cartographer.mapping_3d.proto.MotionFilterOptions motion_filter_options
+cartographer.mapping.proto.MotionFilterOptions motion_filter_options
   Not yet documented.
 
 double imu_gravity_time_constant
@@ -363,19 +382,6 @@ int32 rotational_histogram_size
 
 cartographer.mapping_3d.proto.SubmapsOptions submaps_options
   Not yet documented.
-
-
-cartographer.mapping_3d.proto.MotionFilterOptions
-=================================================
-
-double max_time_seconds
-  Threshold above which range data is inserted based on time.
-
-double max_distance_meters
-  Threshold above which range data is inserted based on linear motion.
-
-double max_angle_radians
-  Threshold above which range data is inserted based on rotational motion.
 
 
 cartographer.mapping_3d.proto.RangeDataInserterOptions

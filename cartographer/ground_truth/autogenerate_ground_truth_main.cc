@@ -21,6 +21,7 @@
 #include "cartographer/common/port.h"
 #include "cartographer/ground_truth/proto/relations.pb.h"
 #include "cartographer/io/proto_stream.h"
+#include "cartographer/io/proto_stream_deserializer.h"
 #include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "cartographer/transform/transform.h"
 #include "gflags/gflags.h"
@@ -121,9 +122,10 @@ proto::GroundTruth GenerateGroundTruth(
         submap_to_node_index.at(constraint.submap_id().submap_index());
 
     // Covered distance between the two should not be too small.
-    if (std::abs(covered_distance.at(matched_node) -
-                 covered_distance.at(representative_node)) <
-        min_covered_distance) {
+    double covered_distance_in_constraint =
+        std::abs(covered_distance.at(matched_node) -
+                 covered_distance.at(representative_node));
+    if (covered_distance_in_constraint < min_covered_distance) {
       continue;
     }
 
@@ -157,6 +159,7 @@ proto::GroundTruth GenerateGroundTruth(
         trajectory.node(representative_node).timestamp());
     new_relation->set_timestamp2(trajectory.node(matched_node).timestamp());
     *new_relation->mutable_expected() = transform::ToProto(expected);
+    new_relation->set_covered_distance(covered_distance_in_constraint);
   }
   LOG(INFO) << "Generated " << ground_truth.relation_size()
             << " relations and ignored " << num_outliers << " outliers.";
@@ -168,13 +171,9 @@ void Run(const std::string& pose_graph_filename,
          const double outlier_threshold_meters,
          const double outlier_threshold_radians) {
   LOG(INFO) << "Reading pose graph from '" << pose_graph_filename << "'...";
-  mapping::proto::PoseGraph pose_graph;
-  {
-    io::ProtoStreamReader reader(pose_graph_filename);
-    CHECK(reader.ReadProto(&pose_graph));
-    CHECK_EQ(pose_graph.trajectory_size(), 1)
-        << "Only pose graphs containing a single trajectory are supported.";
-  }
+  mapping::proto::PoseGraph pose_graph =
+      io::DeserializePoseGraphFromFile(pose_graph_filename);
+
   LOG(INFO) << "Autogenerating ground truth relations...";
   const proto::GroundTruth ground_truth =
       GenerateGroundTruth(pose_graph, min_covered_distance,

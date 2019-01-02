@@ -19,34 +19,17 @@
 #include <vector>
 
 #include "cartographer/mapping/id.h"
+#include "cartographer/mapping/internal/testing/fake_trimmable.h"
 #include "gtest/gtest.h"
 
 namespace cartographer {
 namespace mapping {
 namespace {
 
-class FakePoseGraph : public Trimmable {
- public:
-  ~FakePoseGraph() override {}
-
-  int num_submaps(int trajectory_id) const override {
-    return 17 - trimmed_submaps_.size();
-  }
-
-  void MarkSubmapAsTrimmed(const SubmapId& submap_id) override {
-    trimmed_submaps_.push_back(submap_id);
-  }
-
-  std::vector<SubmapId> trimmed_submaps() { return trimmed_submaps_; }
-
- private:
-  std::vector<SubmapId> trimmed_submaps_;
-};
-
 TEST(PureLocalizationTrimmerTest, MarksSubmapsAsExpected) {
   const int kTrajectoryId = 42;
   PureLocalizationTrimmer trimmer(kTrajectoryId, 15);
-  FakePoseGraph fake_pose_graph;
+  testing::FakeTrimmable fake_pose_graph(kTrajectoryId, 17);
   trimmer.Trim(&fake_pose_graph);
 
   const auto trimmed_submaps = fake_pose_graph.trimmed_submaps();

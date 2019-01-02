@@ -16,8 +16,8 @@ syntax = "proto3";
 
 package cartographer.mapping.proto;
 
-import "cartographer/mapping/pose_graph/proto/constraint_builder_options.proto";
-import "cartographer/mapping/pose_graph/proto/optimization_problem_options.proto";
+import "cartographer/mapping/proto/pose_graph/constraint_builder_options.proto";
+import "cartographer/mapping/proto/pose_graph/optimization_problem_options.proto";
 
 message PoseGraphOptions {
   // Online loop closure: If positive, will run the loop closure while the map
@@ -25,7 +25,7 @@ message PoseGraphOptions {
   int32 optimize_every_n_nodes = 1;
 
   // Options for the constraint builder.
-  mapping.pose_graph.proto.ConstraintBuilderOptions
+  mapping.constraints.proto.ConstraintBuilderOptions
       constraint_builder_options = 3;
 
   // Weight used in the optimization problem for the translational component of
@@ -37,7 +37,7 @@ message PoseGraphOptions {
   double matcher_rotation_weight = 8;
 
   // Options for the optimization problem.
-  mapping.pose_graph.proto.OptimizationProblemOptions
+  mapping.optimization.proto.OptimizationProblemOptions
       optimization_problem_options = 4;
 
   // Number of iterations to use in 'optimization_problem_options' for the final

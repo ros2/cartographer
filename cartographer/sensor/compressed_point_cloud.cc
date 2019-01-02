@@ -19,7 +19,7 @@
 #include <limits>
 
 #include "cartographer/common/math.h"
-#include "cartographer/mapping_3d/hybrid_grid.h"
+#include "cartographer/mapping/3d/hybrid_grid.h"
 
 namespace cartographer {
 namespace sensor {
@@ -103,7 +103,7 @@ CompressedPointCloud::CompressedPointCloud(const PointCloud& point_cloud)
     Eigen::Array3i point;
     int index;
   };
-  using Blocks = mapping_3d::HybridGridBase<std::vector<RasterPoint>>;
+  using Blocks = mapping::HybridGridBase<std::vector<RasterPoint>>;
   Blocks blocks(kPrecision);
   int num_blocks = 0;
   CHECK_LE(point_cloud.size(), std::numeric_limits<int>::max());

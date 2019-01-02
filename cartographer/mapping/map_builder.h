@@ -17,98 +17,79 @@
 #ifndef CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
 #define CARTOGRAPHER_MAPPING_MAP_BUILDER_H_
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
-#include <vector>
+#include "cartographer/mapping/map_builder_interface.h"
 
-#include "Eigen/Geometry"
-#include "cartographer/common/lua_parameter_dictionary.h"
-#include "cartographer/common/port.h"
+#include <memory>
+
 #include "cartographer/common/thread_pool.h"
-#include "cartographer/io/proto_stream.h"
-#include "cartographer/mapping/id.h"
 #include "cartographer/mapping/pose_graph.h"
 #include "cartographer/mapping/proto/map_builder_options.pb.h"
-#include "cartographer/mapping/proto/submap_visualization.pb.h"
-#include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
-#include "cartographer/mapping/submaps.h"
-#include "cartographer/mapping/trajectory_builder.h"
-#include "cartographer/mapping_2d/pose_graph.h"
-#include "cartographer/mapping_3d/pose_graph.h"
-#include "cartographer/sensor/collator.h"
+#include "cartographer/sensor/collator_interface.h"
 
 namespace cartographer {
 namespace mapping {
 
 proto::MapBuilderOptions CreateMapBuilderOptions(
-    common::LuaParameterDictionary* const parameter_dictionary);
+    common::LuaParameterDictionary *const parameter_dictionary);
 
 // Wires up the complete SLAM stack with TrajectoryBuilders (for local submaps)
 // and a PoseGraph for loop closure.
-class MapBuilder {
+class MapBuilder : public MapBuilderInterface {
  public:
-  using LocalSlamResultCallback =
-      GlobalTrajectoryBuilderInterface::LocalSlamResultCallback;
+  explicit MapBuilder(const proto::MapBuilderOptions &options);
+  ~MapBuilder() override {}
 
-  MapBuilder(const proto::MapBuilderOptions& options,
-             const LocalSlamResultCallback& local_slam_result_callback);
-  ~MapBuilder();
+  MapBuilder(const MapBuilder &) = delete;
+  MapBuilder &operator=(const MapBuilder &) = delete;
 
-  MapBuilder(const MapBuilder&) = delete;
-  MapBuilder& operator=(const MapBuilder&) = delete;
-
-  // Creates a new trajectory builder and returns its index.
   int AddTrajectoryBuilder(
-      const std::unordered_set<std::string>& expected_sensor_ids,
-      const proto::TrajectoryBuilderOptions& trajectory_options);
+      const std::set<SensorId> &expected_sensor_ids,
+      const proto::TrajectoryBuilderOptions &trajectory_options,
+      LocalSlamResultCallback local_slam_result_callback) override;
 
-  // Creates a new trajectory and returns its index. Querying the trajectory
-  // builder for it will return 'nullptr'.
-  int AddTrajectoryForDeserialization();
+  int AddTrajectoryForDeserialization(
+      const proto::TrajectoryBuilderOptionsWithSensorIds
+          &options_with_sensor_ids_proto) override;
 
-  // Returns the TrajectoryBuilder corresponding to the specified
-  // 'trajectory_id' or 'nullptr' if the trajectory has no corresponding
-  // builder.
-  mapping::TrajectoryBuilder* GetTrajectoryBuilder(int trajectory_id) const;
+  void FinishTrajectory(int trajectory_id) override;
 
-  // Marks the TrajectoryBuilder corresponding to 'trajectory_id' as finished,
-  // i.e. no further sensor data is expected.
-  void FinishTrajectory(int trajectory_id);
+  std::string SubmapToProto(const SubmapId &submap_id,
+                            proto::SubmapQuery::Response *response) override;
 
-  // Must only be called if at least one unfinished trajectory exists. Returns
-  // the ID of the trajectory that needs more data before the MapBuilder is
-  // unblocked.
-  int GetBlockingTrajectoryId() const;
+  void SerializeState(io::ProtoStreamWriterInterface *writer) override;
 
-  // Fills the SubmapQuery::Response corresponding to 'submap_id'. Returns an
-  // error string on failure, or an empty string on success.
-  std::string SubmapToProto(const SubmapId& submap_id,
-                            proto::SubmapQuery::Response* response);
+  void LoadState(io::ProtoStreamReaderInterface *reader,
+                 bool load_frozen_state) override;
 
-  // Serializes the current state to a proto stream.
-  void SerializeState(io::ProtoStreamWriter* writer);
+  mapping::PoseGraphInterface *pose_graph() override {
+    return pose_graph_.get();
+  }
 
-  // Loads submaps from a proto stream into a new frozen trajectory.
-  void LoadMap(io::ProtoStreamReader* reader);
+  int num_trajectory_builders() const override {
+    return trajectory_builders_.size();
+  }
 
-  int num_trajectory_builders() const;
+  mapping::TrajectoryBuilderInterface *GetTrajectoryBuilder(
+      int trajectory_id) const override {
+    return trajectory_builders_.at(trajectory_id).get();
+  }
 
-  mapping::PoseGraph* pose_graph();
+  const std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>
+      &GetAllTrajectoryBuilderOptions() const override {
+    return all_trajectory_builder_options_;
+  }
 
  private:
   const proto::MapBuilderOptions options_;
   common::ThreadPool thread_pool_;
 
-  std::unique_ptr<mapping_2d::PoseGraph> pose_graph_2d_;
-  std::unique_ptr<mapping_3d::PoseGraph> pose_graph_3d_;
-  mapping::PoseGraph* pose_graph_;
+  std::unique_ptr<PoseGraph> pose_graph_;
 
-  LocalSlamResultCallback local_slam_result_callback_;
-
-  sensor::Collator sensor_collator_;
-  std::vector<std::unique_ptr<mapping::TrajectoryBuilder>> trajectory_builders_;
+  std::unique_ptr<sensor::CollatorInterface> sensor_collator_;
+  std::vector<std::unique_ptr<mapping::TrajectoryBuilderInterface>>
+      trajectory_builders_;
+  std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>
+      all_trajectory_builder_options_;
 };
 
 }  // namespace mapping

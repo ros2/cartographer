@@ -30,10 +30,27 @@
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/port.h"
 #include "cartographer/common/time.h"
+#include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "glog/logging.h"
 
 namespace cartographer {
 namespace mapping {
+namespace internal {
+
+template <class T>
+auto GetTimeImpl(const T& t, int) -> decltype(t.time()) {
+  return t.time();
+}
+template <class T>
+auto GetTimeImpl(const T& t, unsigned) -> decltype(t.time) {
+  return t.time;
+}
+template <class T>
+common::Time GetTime(const T& t) {
+  return GetTimeImpl(t, 0);
+}
+
+}  // namespace internal
 
 // Uniquely identifies a trajectory node using a combination of a unique
 // trajectory ID and a zero-based index of the node inside that trajectory.
@@ -51,6 +68,11 @@ struct NodeId {
   bool operator<(const NodeId& other) const {
     return std::forward_as_tuple(trajectory_id, node_index) <
            std::forward_as_tuple(other.trajectory_id, other.node_index);
+  }
+
+  void ToProto(proto::NodeId* proto) const {
+    proto->set_trajectory_id(trajectory_id);
+    proto->set_node_index(node_index);
   }
 };
 
@@ -74,6 +96,11 @@ struct SubmapId {
   bool operator<(const SubmapId& other) const {
     return std::forward_as_tuple(trajectory_id, submap_index) <
            std::forward_as_tuple(other.trajectory_id, other.submap_index);
+  }
+
+  void ToProto(proto::SubmapId* proto) const {
+    proto->set_trajectory_id(trajectory_id);
+    proto->set_submap_index(submap_index);
   }
 };
 
@@ -304,6 +331,15 @@ class MapById {
                : 0;
   }
 
+  // Returns count of all elements.
+  size_t size() const {
+    size_t size = 0;
+    for (const auto& item : trajectories_) {
+      size += item.second.data_.size();
+    }
+    return size;
+  }
+
   // Returns Range object for range-based loops over the nodes of a trajectory.
   Range<ConstIterator> trajectory(const int trajectory_id) const {
     return Range<ConstIterator>(BeginOfTrajectory(trajectory_id),
@@ -336,7 +372,7 @@ class MapById {
 
     const std::map<int, DataType>& trajectory =
         trajectories_.at(trajectory_id).data_;
-    if (std::prev(trajectory.end())->second.time() < time) {
+    if (internal::GetTime(std::prev(trajectory.end())->second) < time) {
       return EndOfTrajectory(trajectory_id);
     }
     auto left = trajectory.begin();
@@ -344,7 +380,7 @@ class MapById {
     while (left != right) {
       const int middle = left->first + (right->first - left->first) / 2;
       const auto lower_bound_middle = trajectory.lower_bound(middle);
-      if (lower_bound_middle->second.time() < time) {
+      if (internal::GetTime(lower_bound_middle->second) < time) {
         left = std::next(lower_bound_middle);
       } else {
         right = lower_bound_middle;

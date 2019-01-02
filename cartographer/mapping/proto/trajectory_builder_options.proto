@@ -15,8 +15,8 @@
 syntax = "proto3";
 
 import "cartographer/transform/proto/transform.proto";
-import "cartographer/mapping_2d/proto/local_trajectory_builder_options.proto";
-import "cartographer/mapping_3d/proto/local_trajectory_builder_options.proto";
+import "cartographer/mapping/proto/2d/local_trajectory_builder_options_2d.proto";
+import "cartographer/mapping/proto/3d/local_trajectory_builder_options_3d.proto";
 
 package cartographer.mapping.proto;
 
@@ -27,10 +27,38 @@ message InitialTrajectoryPose {
 }
 
 message TrajectoryBuilderOptions {
-  mapping_2d.proto.LocalTrajectoryBuilderOptions
-      trajectory_builder_2d_options = 1;
-  mapping_3d.proto.LocalTrajectoryBuilderOptions
-      trajectory_builder_3d_options = 2;
+  LocalTrajectoryBuilderOptions2D trajectory_builder_2d_options = 1;
+  LocalTrajectoryBuilderOptions3D trajectory_builder_3d_options = 2;
   bool pure_localization = 3;
   InitialTrajectoryPose initial_trajectory_pose = 4;
+
+  message OverlappingSubmapsTrimmerOptions2D {
+    int32 fresh_submaps_count = 1;
+    double min_covered_area = 2;
+    int32 min_added_submaps_count = 3;
+  }
+  OverlappingSubmapsTrimmerOptions2D overlapping_submaps_trimmer_2d = 5;
+}
+
+message SensorId {
+  enum SensorType {
+    RANGE = 0;
+    IMU = 1;
+    ODOMETRY = 2;
+    FIXED_FRAME_POSE = 3;
+    LANDMARK = 4;
+    LOCAL_SLAM_RESULT = 5;
+  }
+
+  SensorType type = 1;
+  string id = 2;
+}
+
+message TrajectoryBuilderOptionsWithSensorIds {
+  repeated SensorId sensor_id = 1;
+  TrajectoryBuilderOptions trajectory_builder_options = 2;
+}
+
+message AllTrajectoryBuilderOptions {
+  repeated TrajectoryBuilderOptionsWithSensorIds options_with_sensor_ids = 1;
 }

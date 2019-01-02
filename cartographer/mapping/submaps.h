@@ -28,7 +28,6 @@
 #include "cartographer/mapping/proto/serialization.pb.h"
 #include "cartographer/mapping/proto/submap_visualization.pb.h"
 #include "cartographer/mapping/trajectory_node.h"
-#include "cartographer/mapping_2d/probability_grid.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -63,28 +62,34 @@ class Submap {
       : local_pose_(local_submap_pose) {}
   virtual ~Submap() {}
 
-  virtual void ToProto(proto::Submap* proto) const = 0;
-
-  // Pose of this submap in the local map frame.
-  transform::Rigid3d local_pose() const { return local_pose_; }
-
-  // Number of RangeData inserted.
-  int num_range_data() const { return num_range_data_; }
+  virtual void ToProto(proto::Submap* proto,
+                       bool include_probability_grid_data) const = 0;
+  virtual void UpdateFromProto(const proto::Submap& proto) = 0;
 
   // Fills data into the 'response'.
   virtual void ToResponseProto(
       const transform::Rigid3d& global_submap_pose,
       proto::SubmapQuery::Response* response) const = 0;
 
- protected:
-  void SetNumRangeData(const int num_range_data) {
+  // Pose of this submap in the local map frame.
+  transform::Rigid3d local_pose() const { return local_pose_; }
+
+  // Number of RangeData inserted.
+  int num_range_data() const { return num_range_data_; }
+  void set_num_range_data(const int num_range_data) {
     num_range_data_ = num_range_data;
   }
+
+  // Whether the submap is finished or not.
+  bool finished() const { return finished_; }
+  void set_finished(bool finished) { finished_ = finished; }
 
  private:
   const transform::Rigid3d local_pose_;
   int num_range_data_ = 0;
+  bool finished_ = false;
 };
+
 }  // namespace mapping
 }  // namespace cartographer
 

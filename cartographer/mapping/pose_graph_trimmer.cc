@@ -28,13 +28,21 @@ PureLocalizationTrimmer::PureLocalizationTrimmer(const int trajectory_id,
 }
 
 void PureLocalizationTrimmer::Trim(Trimmable* const pose_graph) {
-  while (pose_graph->num_submaps(trajectory_id_) > num_submaps_to_keep_) {
-    const int submap_index_to_trim_next = num_submaps_trimmed_;
-    pose_graph->MarkSubmapAsTrimmed(
-        SubmapId{trajectory_id_, submap_index_to_trim_next});
-    ++num_submaps_trimmed_;
+  if (pose_graph->IsFinished(trajectory_id_)) {
+    num_submaps_to_keep_ = 0;
+  }
+
+  auto submap_ids = pose_graph->GetSubmapIds(trajectory_id_);
+  for (std::size_t i = 0; i + num_submaps_to_keep_ < submap_ids.size(); ++i) {
+    pose_graph->MarkSubmapAsTrimmed(submap_ids.at(i));
+  }
+
+  if (num_submaps_to_keep_ == 0) {
+    finished_ = true;
   }
 }
+
+bool PureLocalizationTrimmer::IsFinished() { return finished_; }
 
 }  // namespace mapping
 }  // namespace cartographer

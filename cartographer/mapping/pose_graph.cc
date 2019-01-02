@@ -16,8 +16,8 @@
 
 #include "cartographer/mapping/pose_graph.h"
 
-#include "cartographer/mapping/pose_graph/constraint_builder.h"
-#include "cartographer/mapping/pose_graph/optimization_problem_options.h"
+#include "cartographer/mapping/internal/constraints/constraint_builder.h"
+#include "cartographer/mapping/internal/optimization/optimization_problem_options.h"
 #include "cartographer/transform/transform.h"
 #include "glog/logging.h"
 
@@ -43,7 +43,8 @@ PoseGraph::Constraint::Tag FromProto(
     case proto::PoseGraph::Constraint::INTER_SUBMAP:
       return PoseGraph::Constraint::Tag::INTER_SUBMAP;
     case ::google::protobuf::kint32max:
-    case ::google::protobuf::kint32min:;
+    case ::google::protobuf::kint32min: {
+    }
   }
   LOG(FATAL) << "Unsupported tag.";
 }
@@ -74,14 +75,14 @@ proto::PoseGraphOptions CreatePoseGraphOptions(
   options.set_optimize_every_n_nodes(
       parameter_dictionary->GetInt("optimize_every_n_nodes"));
   *options.mutable_constraint_builder_options() =
-      pose_graph::CreateConstraintBuilderOptions(
+      constraints::CreateConstraintBuilderOptions(
           parameter_dictionary->GetDictionary("constraint_builder").get());
   options.set_matcher_translation_weight(
       parameter_dictionary->GetDouble("matcher_translation_weight"));
   options.set_matcher_rotation_weight(
       parameter_dictionary->GetDouble("matcher_rotation_weight"));
   *options.mutable_optimization_problem_options() =
-      pose_graph::CreateOptimizationProblemOptions(
+      optimization::CreateOptimizationProblemOptions(
           parameter_dictionary->GetDictionary("optimization_problem").get());
   options.set_max_num_final_iterations(
       parameter_dictionary->GetNonNegativeInt("max_num_final_iterations"));
@@ -96,7 +97,25 @@ proto::PoseGraphOptions CreatePoseGraphOptions(
   return options;
 }
 
-proto::PoseGraph PoseGraph::ToProto() {
+proto::PoseGraph::Constraint ToProto(const PoseGraph::Constraint& constraint) {
+  proto::PoseGraph::Constraint constraint_proto;
+  *constraint_proto.mutable_relative_pose() =
+      transform::ToProto(constraint.pose.zbar_ij);
+  constraint_proto.set_translation_weight(constraint.pose.translation_weight);
+  constraint_proto.set_rotation_weight(constraint.pose.rotation_weight);
+  constraint_proto.mutable_submap_id()->set_trajectory_id(
+      constraint.submap_id.trajectory_id);
+  constraint_proto.mutable_submap_id()->set_submap_index(
+      constraint.submap_id.submap_index);
+  constraint_proto.mutable_node_id()->set_trajectory_id(
+      constraint.node_id.trajectory_id);
+  constraint_proto.mutable_node_id()->set_node_index(
+      constraint.node_id.node_index);
+  constraint_proto.set_tag(mapping::ToProto(constraint.tag));
+  return constraint_proto;
+}
+
+proto::PoseGraph PoseGraph::ToProto() const {
   proto::PoseGraph proto;
 
   std::map<int, proto::Trajectory* const> trajectory_protos;
@@ -130,27 +149,19 @@ proto::PoseGraph PoseGraph::ToProto() {
         transform::ToProto(submap_id_data.data.pose);
   }
 
-  for (const auto& constraint : constraints()) {
-    auto* const constraint_proto = proto.add_constraint();
-    *constraint_proto->mutable_relative_pose() =
-        transform::ToProto(constraint.pose.zbar_ij);
-    constraint_proto->set_translation_weight(
-        constraint.pose.translation_weight);
-    constraint_proto->set_rotation_weight(constraint.pose.rotation_weight);
-
-    constraint_proto->mutable_submap_id()->set_trajectory_id(
-        constraint.submap_id.trajectory_id);
-    constraint_proto->mutable_submap_id()->set_submap_index(
-        constraint.submap_id.submap_index);
-
-    constraint_proto->mutable_node_id()->set_trajectory_id(
-        constraint.node_id.trajectory_id);
-    constraint_proto->mutable_node_id()->set_node_index(
-        constraint.node_id.node_index);
-
-    constraint_proto->set_tag(mapping::ToProto(constraint.tag));
+  auto constraints_copy = constraints();
+  proto.mutable_constraint()->Reserve(constraints_copy.size());
+  for (const auto& constraint : constraints_copy) {
+    *proto.add_constraint() = cartographer::mapping::ToProto(constraint);
   }
 
+  auto landmarks_copy = GetLandmarkPoses();
+  proto.mutable_landmark_poses()->Reserve(landmarks_copy.size());
+  for (const auto& id_pose : landmarks_copy) {
+    auto* landmark_proto = proto.add_landmark_poses();
+    landmark_proto->set_landmark_id(id_pose.first);
+    *landmark_proto->mutable_global_pose() = transform::ToProto(id_pose.second);
+  }
   return proto;
 }
 
