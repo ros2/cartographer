@@ -249,22 +249,22 @@ target_link_libraries(${TEST_LIB} PUBLIC ${PROJECT_NAME})
 set_target_properties(${TEST_LIB} PROPERTIES
   COMPILE_FLAGS ${TARGET_COMPILE_FLAGS})
 
-foreach(ABS_FIL ${ALL_TESTS})
-  file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
-  get_filename_component(DIR ${REL_FIL} DIRECTORY)
-  get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
-  # Replace slashes as required for CMP0037.
-  string(REPLACE "/" "." TEST_TARGET_NAME "${DIR}/${FIL_WE}")
-  google_test("${TEST_TARGET_NAME}" ${ABS_FIL})
-  if(${BUILD_GRPC})
-    target_link_libraries("${TEST_TARGET_NAME}" PUBLIC grpc++)
-    target_link_libraries("${TEST_TARGET_NAME}" PUBLIC async_grpc)
-  endif()
-  if(${BUILD_PROMETHEUS})
-    target_link_libraries("${TEST_TARGET_NAME}" PUBLIC prometheus-cpp)
-  endif()
-  target_link_libraries("${TEST_TARGET_NAME}" PUBLIC ${TEST_LIB})
-endforeach()
+# foreach(ABS_FIL ${ALL_TESTS})
+#   file(RELATIVE_PATH REL_FIL ${PROJECT_SOURCE_DIR} ${ABS_FIL})
+#   get_filename_component(DIR ${REL_FIL} DIRECTORY)
+#   get_filename_component(FIL_WE ${REL_FIL} NAME_WE)
+#   # Replace slashes as required for CMP0037.
+#   string(REPLACE "/" "." TEST_TARGET_NAME "${DIR}/${FIL_WE}")
+#   google_test("${TEST_TARGET_NAME}" ${ABS_FIL})
+#   if(${BUILD_GRPC})
+#     target_link_libraries("${TEST_TARGET_NAME}" PUBLIC grpc++)
+#     target_link_libraries("${TEST_TARGET_NAME}" PUBLIC async_grpc)
+#   endif()
+#   if(${BUILD_PROMETHEUS})
+#     target_link_libraries("${TEST_TARGET_NAME}" PUBLIC prometheus-cpp)
+#   endif()
+#   target_link_libraries("${TEST_TARGET_NAME}" PUBLIC ${TEST_LIB})
+# endforeach()
 
 # Add the binary directory first, so that port.h is included after it has
 # been generated.
