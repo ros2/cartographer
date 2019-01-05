@@ -23,6 +23,9 @@
     and mapping (SLAM) in 2D and 3D across multiple platforms and sensor
     configurations.
   </description>
+  <maintainer email="clalancette@openrobotics.org">
+    Chris Lalancette
+  </maintainer>
   <maintainer email="pyo@robotis.com">Pyo</maintainer>
   <license>Apache 2.0</license>
 
