@@ -24,7 +24,7 @@ sudo apt-get install -y \
     g++ \
     git \
     google-mock \
-    libboost-all-dev \
+    libboost-iostreams-dev \
     libcairo2-dev \
     libeigen3-dev \
     libgflags-dev \
