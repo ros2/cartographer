@@ -23,7 +23,9 @@
 #include "Eigen/Core"
 #include "cartographer/transform/rigid_transform.h"
 #include "ceres/ceres.h"
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
 #include "ceres/manifold.h"
+#endif
 
 namespace cartographer {
 namespace mapping {
@@ -31,11 +33,19 @@ namespace optimization {
 
 class CeresPose {
  public:
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
   CeresPose(
       const transform::Rigid3d& pose,
       std::unique_ptr<ceres::Manifold> translation_manifold,
       std::unique_ptr<ceres::Manifold> rotation_manifold,
       ceres::Problem* problem);
+#else
+  CeresPose(
+      const transform::Rigid3d& rigid,
+      std::unique_ptr<ceres::LocalParameterization> translation_parametrization,
+      std::unique_ptr<ceres::LocalParameterization> rotation_parametrization,
+      ceres::Problem* problem);
+#endif
 
   const transform::Rigid3d ToRigid() const;
 

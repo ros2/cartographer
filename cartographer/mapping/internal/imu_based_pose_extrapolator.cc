@@ -28,7 +28,9 @@
 #include "cartographer/mapping/internal/optimization/cost_functions/spa_cost_function_3d.h"
 #include "cartographer/mapping/pose_graph_interface.h"
 #include "cartographer/transform/transform.h"
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
 #include "ceres/manifold.h"
+#endif
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -136,9 +138,16 @@ ImuBasedPoseExtrapolator::ExtrapolatePosesWithGravity(
 
   // Track gravity alignment over time and use this as a frame here so that
   // we can estimate the gravity alignment of the current pose.
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
   optimization::CeresPose gravity_from_local(
       gravity_from_local_, nullptr,
       absl::make_unique<ceres::QuaternionManifold>(), &problem);
+#else
+  optimization::CeresPose gravity_from_local(
+      gravity_from_local_, nullptr,
+      absl::make_unique<ceres::QuaternionParameterization>(), &problem);
+#endif
+
   // Use deque so addresses stay constant during problem formulation.
   std::deque<optimization::CeresPose> nodes;
   std::vector<common::Time> node_times;
@@ -161,9 +170,10 @@ ImuBasedPoseExtrapolator::ExtrapolatePosesWithGravity(
       gravity_from_node = gravity_from_local_ * timed_pose.transform;
     }
 
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
     if (is_last) {
       nodes.emplace_back(gravity_from_node, nullptr,
-                         absl::make_unique<ConstantYawQuaternionManifold>(),
+                         absl::make_unique<ceres::AutoDiffManifold<ConstantYawQuaternionOperations, 4, 2>>(),
                          &problem);
       problem.SetParameterBlockConstant(nodes.back().translation());
     } else {
@@ -171,6 +181,19 @@ ImuBasedPoseExtrapolator::ExtrapolatePosesWithGravity(
                          absl::make_unique<ceres::QuaternionManifold>(),
                          &problem);
     }
+#else
+    if (is_last) {
+      nodes.emplace_back(gravity_from_node, nullptr,
+                         absl::make_unique<ceres::AutoDiffLocalParameterization<
+                             ConstantYawQuaternionPlus, 4, 2>>(),
+                         &problem);
+      problem.SetParameterBlockConstant(nodes.back().translation());
+    } else {
+      nodes.emplace_back(gravity_from_node, nullptr,
+                         absl::make_unique<ceres::QuaternionParameterization>(),
+                         &problem);
+    }
+#endif
   }
 
   double gravity_constant = 9.8;
@@ -199,9 +222,15 @@ ImuBasedPoseExtrapolator::ExtrapolatePosesWithGravity(
           gravity_constant * Eigen::Vector3d::UnitZ(), time, imu_data_,
           &imu_it_prev_prev)
           .pose;
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
   nodes.emplace_back(initial_estimate, nullptr,
                      absl::make_unique<ceres::QuaternionManifold>(),
                      &problem);
+#else
+  nodes.emplace_back(initial_estimate, nullptr,
+                     absl::make_unique<ceres::QuaternionParameterization>(),
+                     &problem);
+#endif
   node_times.push_back(time);
 
   // Add cost functions for node constraints.
@@ -222,8 +251,13 @@ ImuBasedPoseExtrapolator::ExtrapolatePosesWithGravity(
 
   std::array<double, 4> imu_calibration{{1., 0., 0., 0.}};
 
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
   problem.AddParameterBlock(imu_calibration.data(), 4,
                             new ceres::QuaternionManifold());
+#else
+  problem.AddParameterBlock(imu_calibration.data(), 4,
+                            new ceres::QuaternionParameterization());
+#endif
   problem.SetParameterBlockConstant(imu_calibration.data());
 
   auto imu_it = imu_data_.begin();

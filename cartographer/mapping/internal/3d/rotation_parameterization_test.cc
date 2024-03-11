@@ -1,3 +1,4 @@
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
 #include "cartographer/mapping/internal/3d/rotation_parameterization.h"
 
 #include "ceres/manifold_test_utils.h"
@@ -9,7 +10,7 @@ template <typename T>
 class RotationParameterizationTests : public ::testing::Test {};
 
 using TestTypes =
-    ::testing::Types<YawOnlyQuaternionManifold, ConstantYawQuaternionManifold>;
+    ::testing::Types<ceres::AutoDiffManifold<YawOnlyQuaternionOperations, 4, 1>, ceres::AutoDiffManifold<ConstantYawQuaternionOperations, 4, 2>>;
 TYPED_TEST_SUITE(RotationParameterizationTests, TestTypes);
 
 TYPED_TEST(RotationParameterizationTests, ManifoldInvariantsHold) {
@@ -46,3 +47,4 @@ TYPED_TEST(RotationParameterizationTests, ManifoldInvariantsHold) {
 }
 
 }  // namespace cartographer::mapping
+#endif

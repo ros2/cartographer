@@ -158,11 +158,19 @@ void AddLandmarkCostFunctions(
                 ? landmark_node.second.global_landmark_pose.value()
                 : GetInitialLandmarkPose(observation, prev->data, next->data,
                                          *prev_node_pose, *next_node_pose);
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
         C_landmarks->emplace(
             landmark_id,
             CeresPose(starting_point, nullptr /* translation_manifold */,
                       absl::make_unique<ceres::QuaternionManifold>(),
                       problem));
+#else
+        C_landmarks->emplace(
+            landmark_id,
+            CeresPose(starting_point, nullptr /* translation_parametrization */,
+                      absl::make_unique<ceres::QuaternionParameterization>(),
+                      problem));
+#endif
         // Set landmark constant if it is frozen.
         if (landmark_node.second.frozen) {
           problem->SetParameterBlockConstant(
@@ -274,12 +282,22 @@ void OptimizationProblem3D::Solve(
   ceres::Problem::Options problem_options;
   ceres::Problem problem(problem_options);
 
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
   const auto translation_manifold =
       [this]() -> std::unique_ptr<ceres::Manifold> {
     return options_.fix_z_in_3d() ? absl::make_unique<ceres::SubsetManifold>(
                                         3, std::vector<int>{2})
                                   : nullptr;
   };
+#else
+  const auto translation_parameterization =
+      [this]() -> std::unique_ptr<ceres::LocalParameterization> {
+    return options_.fix_z_in_3d()
+               ? absl::make_unique<ceres::SubsetParameterization>(
+                     3, std::vector<int>{2})
+               : nullptr;
+  };
+#endif
 
   // Set the starting point.
   CHECK(!submap_data_.empty());
@@ -294,21 +312,40 @@ void OptimizationProblem3D::Solve(
       first_submap = false;
       // Fix the first submap of the first trajectory except for allowing
       // gravity alignment.
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
       C_submaps.Insert(
           submap_id_data.id,
           CeresPose(submap_id_data.data.global_pose,
                     translation_manifold(),
-                    absl::make_unique<ConstantYawQuaternionManifold>(),
+                    absl::make_unique<ceres::AutoDiffManifold<ConstantYawQuaternionOperations, 4, 2>>(),
                     &problem));
+#else
+      C_submaps.Insert(
+          submap_id_data.id,
+          CeresPose(submap_id_data.data.global_pose,
+                    translation_parameterization(),
+                    absl::make_unique<ceres::AutoDiffLocalParameterization<
+                        ConstantYawQuaternionPlus, 4, 2>>(),
+                    &problem));
+#endif
       problem.SetParameterBlockConstant(
           C_submaps.at(submap_id_data.id).translation());
     } else {
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
       C_submaps.Insert(
           submap_id_data.id,
           CeresPose(submap_id_data.data.global_pose,
                     translation_manifold(),
                     absl::make_unique<ceres::QuaternionManifold>(),
                     &problem));
+#else
+      C_submaps.Insert(
+          submap_id_data.id,
+          CeresPose(submap_id_data.data.global_pose,
+                    translation_parameterization(),
+                    absl::make_unique<ceres::QuaternionParameterization>(),
+                    &problem));
+#endif
     }
     if (frozen) {
       problem.SetParameterBlockConstant(
@@ -320,11 +357,19 @@ void OptimizationProblem3D::Solve(
   for (const auto& node_id_data : node_data_) {
     const bool frozen =
         frozen_trajectories.count(node_id_data.id.trajectory_id) != 0;
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
     C_nodes.Insert(
         node_id_data.id,
         CeresPose(node_id_data.data.global_pose, translation_manifold(),
                   absl::make_unique<ceres::QuaternionManifold>(),
                   &problem));
+#else
+    C_nodes.Insert(
+        node_id_data.id,
+        CeresPose(node_id_data.data.global_pose, translation_parameterization(),
+                  absl::make_unique<ceres::QuaternionParameterization>(),
+                  &problem));
+#endif
     if (frozen) {
       problem.SetParameterBlockConstant(C_nodes.at(node_id_data.id).rotation());
       problem.SetParameterBlockConstant(
@@ -360,8 +405,13 @@ void OptimizationProblem3D::Solve(
       }
       TrajectoryData& trajectory_data = trajectory_data_.at(trajectory_id);
 
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
+      problem.AddParameterBlock(trajectory_data.imu_calibration.data(), 4,
+                                new ceres::QuaternionManifold());
+#else
       problem.AddParameterBlock(trajectory_data.imu_calibration.data(), 4,
                                 new ceres::QuaternionParameterization());
+#endif
       if (!options_.use_online_imu_extrinsics_in_3d()) {
         problem.SetParameterBlockConstant(
             trajectory_data.imu_calibration.data());
@@ -534,6 +584,7 @@ void OptimizationProblem3D::Solve(
           fixed_frame_pose_in_map =
               node_data.global_pose * constraint_pose.zbar_ij.inverse();
         }
+#if CERES_VERSION_MAJOR > 2 || CERES_VERSION_MAJOR == 2 && CERES_VERSION_MINOR >= 1
         C_fixed_frames.emplace(
             std::piecewise_construct, std::forward_as_tuple(trajectory_id),
             std::forward_as_tuple(
@@ -542,8 +593,22 @@ void OptimizationProblem3D::Solve(
                     Eigen::AngleAxisd(
                         transform::GetYaw(fixed_frame_pose_in_map.rotation()),
                         Eigen::Vector3d::UnitZ())),
-                nullptr, absl::make_unique<YawOnlyQuaternionManifold>(),
+                nullptr, absl::make_unique<ceres::AutoDiffManifold<YawOnlyQuaternionOperations, 4, 1>>(),
                 &problem));
+#else
+        C_fixed_frames.emplace(
+            std::piecewise_construct, std::forward_as_tuple(trajectory_id),
+            std::forward_as_tuple(
+                transform::Rigid3d(
+                    fixed_frame_pose_in_map.translation(),
+                    Eigen::AngleAxisd(
+                        transform::GetYaw(fixed_frame_pose_in_map.rotation()),
+                        Eigen::Vector3d::UnitZ())),
+                nullptr,
+                absl::make_unique<ceres::AutoDiffLocalParameterization<
+                    YawOnlyQuaternionPlus, 4, 1>>(),
+                &problem));
+#endif
         fixed_frame_pose_initialized = true;
       }
 
