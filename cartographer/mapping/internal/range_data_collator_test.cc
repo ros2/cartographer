@@ -92,7 +92,7 @@ TEST(RangeDataCollatorTest, SingleSensorEmptyData) {
   const std::string sensor_id = "single_sensor";
   RangeDataCollator collator({sensor_id});
   sensor::TimedPointCloudData empty_data{
-      common::FromUniversal(300), {}, {}, {}};
+      common::FromUniversal(300), Eigen::Vector3f::Zero(), {}, {}};
   auto output_0 = collator.AddRangeData(sensor_id, empty_data);
   EXPECT_EQ(output_0.time, empty_data.time);
   EXPECT_EQ(output_0.ranges.size(), empty_data.ranges.size());
