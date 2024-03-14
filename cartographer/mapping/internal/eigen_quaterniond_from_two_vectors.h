@@ -17,7 +17,18 @@
 #ifndef CARTOGRAPHER_MAPPING_EIGEN_QUATERNIOND_FROM_TWO_VECTORS_H_
 #define CARTOGRAPHER_MAPPING_EIGEN_QUATERNIOND_FROM_TWO_VECTORS_H_
 
+// When using Eigen 3.4.0 on Ubuntu 24.04 on an x86_64 machine and
+// compiling with -O3 -NDEBUG, we get a warning that an SSE function
+// deep within Eigen might be used uninitialized.  This seems like
+// a spurious warning, so just ignore it for now.
+#ifdef __linux__
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 #include "Eigen/Geometry"
+#ifdef __linux__
+#pragma GCC diagnostic pop
+#endif
 
 namespace cartographer {
 namespace mapping {
