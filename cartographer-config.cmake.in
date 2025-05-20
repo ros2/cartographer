@@ -44,6 +44,8 @@ if(CARTOGRAPHER_HAS_GRPC)
    find_package(async_grpc ${QUIET_OR_REQUIRED_OPTION})
 endif()
 
+find_package(Boost REQUIRED COMPONENTS iostreams)
+
 include("${CARTOGRAPHER_CMAKE_DIR}/CartographerTargets.cmake")
 
 unset(QUIET_OR_REQUIRED_OPTION)
